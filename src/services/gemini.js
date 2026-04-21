@@ -6,7 +6,7 @@ const CATEGORY_VALUES = CATEGORIES.map(c => c.value).join(', ')
 export async function extractReceiptData(imageDataUrl, apiKey) {
   const genAI = new GoogleGenerativeAI(apiKey)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-1.5-flash',
     generationConfig: { responseMimeType: 'application/json' },
   })
 
