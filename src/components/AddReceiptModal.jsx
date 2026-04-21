@@ -65,16 +65,7 @@ export default function AddReceiptModal({ onClose, editReceipt }) {
       })
       setAiFields(filled)
     } catch (err) {
-      const msg = err.message || ''
-      if (msg.includes('API_KEY') || msg.includes('API key') || msg.includes('401')) {
-        setExtractError('Invalid API key — check Settings.')
-      } else if (msg.includes('quota') || msg.includes('429')) {
-        setExtractError('Quota exceeded. Try again later.')
-      } else if (msg.includes('404') || msg.includes('not found')) {
-        setExtractError('Model not found. Check your API key has Gemini access.')
-      } else {
-        setExtractError(msg || 'Could not read receipt.')
-      }
+      setExtractError(err.message || 'Unknown error')
       console.error('[Gemini]', err)
     } finally {
       setExtracting(false)
