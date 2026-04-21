@@ -1,15 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { CATEGORIES } from '../db.js'
 
 const CATEGORY_VALUES = CATEGORIES.map(c => c.value).join(', ')
+const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
+const MODEL = 'gemini-1.5-flash'
 
 export async function extractReceiptData(imageDataUrl, apiKey) {
-  const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: { responseMimeType: 'application/json' },
-  })
-
   const base64 = imageDataUrl.split(',')[1]
   const mimeType = imageDataUrl.split(';')[0].split(':')[1] || 'image/jpeg'
 
@@ -20,12 +15,29 @@ export async function extractReceiptData(imageDataUrl, apiKey) {
 - category: string (pick one from: ${CATEGORY_VALUES})
 - description: string (short summary of items, or "" if not visible)`
 
-  const result = await model.generateContent([
-    { text: prompt },
-    { inlineData: { data: base64, mimeType } },
-  ])
+  const res = await fetch(`${API_BASE}/${MODEL}:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { text: prompt },
+          { inline_data: { mime_type: mimeType, data: base64 } },
+        ],
+      }],
+      generationConfig: { responseMimeType: 'application/json' },
+    }),
+  })
 
-  const text = result.response.text().trim()
+  const json = await res.json()
+
+  if (!res.ok) {
+    throw new Error(json.error?.message || `HTTP ${res.status}`)
+  }
+
+  const text = json.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!text) throw new Error('Empty response from Gemini')
+
   const data = JSON.parse(text)
 
   if (!CATEGORIES.find(c => c.value === data.category)) {
